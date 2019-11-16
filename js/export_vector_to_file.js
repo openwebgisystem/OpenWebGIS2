@@ -124,7 +124,8 @@ function ExportLayerToFile()
 { var layerExport;
 if(document.getElementById("id_Export_format_select").value=="0")
 {alert ("Select format to export"); return;}
-if(document.getElementById("id_Export_Layer_select").value=='0'){ alert('Please select Layer name');return;}
+if(document.getElementById("id_Export_Layer_select").value=='select layer'&&document.getElementById("id_Export_format_select").value!=='png'){ alert('Please select Layer name');return;}
+if(document.getElementById("id_Export_format_select").value=='png'){Export_Layer_PNG();return;}
 layer_vector_group.getLayers().forEach(function(layer_arr){if(layer_arr.get('name')==document.getElementById("id_Export_Layer_select").value){layerExport=layer_arr;
 if(document.getElementById("id_Export_format_select").value=='geojson'){Export_Layer_JSON(layerExport);}
 if(document.getElementById("id_Export_format_select").value=='gml2'){Export_Layer_GML2(layerExport);}
@@ -132,8 +133,22 @@ if(document.getElementById("id_Export_format_select").value=='gml3'){Export_Laye
 if(document.getElementById("id_Export_format_select").value=='gpx'){Export_Layer_GPX(layerExport);}
 if(document.getElementById("id_Export_format_select").value=='wkt'){Export_Layer_WKT(layerExport);}
 if(document.getElementById("id_Export_format_select").value=='csv'){Export_Layer_CSV(layerExport);}
-if(document.getElementById("id_Export_format_select").value=='kml'){Export_Layer_KML(layerExport);} }
+if(document.getElementById("id_Export_format_select").value=='kml'){Export_Layer_KML(layerExport);} 
+ 
+}
 })
+}
+function Export_Layer_PNG()
+{
+//ol-unselectable
+  map.once('postcompose', function(event) {
+          var canvas = event.context.canvas;
+          canvas.toBlob(function(blob) {
+TextFile=blob;saveData ();
+            //saveAs(blob, 'map.png');
+          });
+        });
+        map.renderSync();
 }
 function Export_Layer_JSON(layerExport)
 {
@@ -174,11 +189,62 @@ var jsonText = new ol.format.GPX().writeFeatures(features, {'dataProjection':'EP
 TextFile=jsonText;saveData ();
 
 }
+function CloseWindowExporCSV()
+{
+document.getElementById("id_divloadfiles_layerCSV").parentNode.removeChild(document.getElementById("id_divloadfiles_layerCSV"))
+}
 function Export_Layer_CSV(layerExport)
+{
+var body = document.body;
+    var DivEditeLeg=document.createElement("div");DivEditeLeg.style.cursor="default";
+DivEditeLeg.id="id_divloadfiles_layerCSV";
+//DivEditeLeg.className="id_divRoutLegMain";
+DivEditeLeg.innerHTML='<div id="id_id_divuploadfilesCSV0" style="background:#ffffff; color:#000000;z-index: 6000;position:absolute;overflow:hidden; border: 1px solid black;right: 0.5em; top: 2.5em;">'+
+'<a>Select parameters of the csv file:</a><br>'+
+'<input type="text" size="6" id="id_CSVlonG" value="longitude"/>name of the longitude field<br>'+
+'<input type="text" size="6" id="id_CSVlatG" value="latitude"/>name of the latitude field<br>'+
+'<select id=TypeSeparate_idCSV>'+
+'<option selected value=";">; semicolon</option>'+
+'<option selected value=",">, comma</option>'+
+'</select>Please select separation symbol in CSV file<br><br>'+
+'<p> <button id=butCsvExp_id type=button style="position:absolute; left: 0px; bottom: 0px;" class=buttonclass onclick=Export_Layer_CSV_OK()>OK</button><button class=buttonclass type=button style="position:absolute; right: 0px; bottom: 0px;" onclick=CloseWindowExporCSV()>Close</button></p>';
+'</div>';
+
+if(!document.getElementById("id_divloadfiles_layerCSV"))
+{document.getElementById('menu_main').appendChild(DivEditeLeg);
+//document.getElementById('id_uploadFilelayer').addEventListener('change', readSingleFile, false);
+
+document.getElementById("id_divloadfiles_layerCSV").childNodes[0].addEventListener("mousedown", saveXY, false);
+document.getElementById("id_divloadfiles_layerCSV").childNodes[0].addEventListener("touchstart", saveXY, false);
+}
+document.getElementById('butCsvExp_id').onclick=function(){Export_Layer_CSV_OK(layerExport)}
+}
+function Export_Layer_CSV_OK(layerExport)
 {
 var fieldsArr=[document.getElementById("id_CSVlonG").value,document.getElementById("id_CSVlatG").value];
 var csvArray=[]
-for(var key in layerExport.features[0].attributes)
+var strs='';strs+=fieldsArr[0]+document.getElementById("TypeSeparate_idCSV").value+fieldsArr[1]+document.getElementById("TypeSeparate_idCSV").value;
+var att = layerExport.getSource().getFeatures()[0].getProperties();
+for(h in att){if(h!=='geometry'){strs+=h+document.getElementById("TypeSeparate_idCSV").value}}
+csvArray.push(strs);//rtt=csvArray; alert("kk")
+for(var ty=0;ty<layerExport.getSource().getFeatures().length;ty++)
+{var newPoint1 =  [layerExport.getSource().getFeatures()[ty].getGeometry().getCoordinates()[0],
+layerExport.getSource().getFeatures()[ty].getGeometry().getCoordinates()[1]];
+var str="";
+var arp=ol.proj.transform(newPoint1,  'EPSG:3857','EPSG:4326');str+=arp[0]+document.getElementById("TypeSeparate_idCSV").value+arp[1]+document.getElementById("TypeSeparate_idCSV").value;
+var att = layerExport.getSource().getFeatures()[ty].getProperties();
+for(h in att){if(h!=='geometry'){str+=att[h]+document.getElementById("TypeSeparate_idCSV").value}}
+csvArray.push(str);
+}
+var datastr='';
+for(var g=0;g<csvArray.length;g++)
+{
+datastr+=csvArray[g].slice(0,-1)+ "\n";
+}
+TextFile=datastr;saveData ();
+
+
+/*for(var key in layerExport.features[0].attributes)
 {fieldsArr.push(key);}
 csvArray.push([fieldsArr]);
 rtt=csvArray;
@@ -206,7 +272,7 @@ for(var g=0;g<csvArray.length;g++)
 for(var gg=0;gg<csvArray[g].length;gg++)
 {datastr = csvArray[g][gg].join(document.getElementById("TypeSeparate_idCSV").value)+ "\n";datastr2+=datastr;}
 }
-TextFile=datastr2;saveData ();
+TextFile=datastr2;saveData ();*/
 }
 function parseOb (Obj,xy) {
 var x,y;
@@ -214,12 +280,12 @@ for(var key in Obj)
 {if(key=='x'){
 x = Obj[key]
 var new_pos=new OpenLayers.LonLat(x,0).transform(
-
+MapCentia.gc2.map.getProjectionObject(),new OpenLayers.Projection("EPSG:4326"));
 xy[0].push(new_pos.lon);
 }
 if(key=='y'){var y = Obj[key];
 var new_pos=new OpenLayers.LonLat(0,y).transform(
-
+MapCentia.gc2.map.getProjectionObject(),new OpenLayers.Projection("EPSG:4326"));
 xy[1].push(new_pos.lat);}
 
 if (key!=='parent'&&typeof(Obj[key])=='object')
@@ -242,6 +308,7 @@ function saveData () {
 	}
 	var extfile='';if(document.getElementById("id_Export_format_select").value=='gml3'||document.getElementById("id_Export_format_select").value=='gml2'){extfile='gml'}else{extfile=document.getElementById("id_Export_format_select").value}
 var namefile=document.getElementById("id_Export_Layer_select").value+"."+extfile;
+if(namefile=="select layer.png"){namefile="Map.png"}
 	showSave(
 		TextFile,
 		namefile,

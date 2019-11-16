@@ -118,6 +118,7 @@ var strselle='<div id="id_divVectorStyle" style="font-family:Arial;font-size: 13
 '<li> <a id="MaximumValueLayer">Maximum:</a>'+
 '</li><br>'+
 '</div></div>';
+
 var layerLegend;
 var layerLegendType;
 var layerLegendMain;
@@ -291,7 +292,7 @@ function deleteAttributes()
 {layerLegendType=document.getElementById("id_vectorlayer_select").value;
 x=confirm('Are you sure?');
  if (x==true) {
-id_labelOpen
+
 var o=document.getElementById("id_labelOpen");
 var attributesList = [];
 for (var i = 0; i < o.options.length; i++){ if (o.options[i].selected) {attributesList.push(o.options[i].value);}}
@@ -397,7 +398,7 @@ if(typeof(obAtr.colorlab)!='undefined'){layerStyle.getText().setFill(new ol.styl
 if(typeof(obAtr.stcolorlab)!='undefined'){layerStyle.getText().setStroke(new ol.style.Stroke({color:[obAtr.stcolorlab[0],obAtr.stcolorlab[1],obAtr.stcolorlab[2],obAtr.fontstroke_op*1],width:obAtr.fontstroke_w*1})) }
 layerStyle.getText().setFont(obAtr.fontWeight+' '+obAtr.fontsize+'px'+' '+obAtr.fontFamily);
 layerStyle.getText().setTextAlign(obAtr.fontAlign);layerStyle.getText().setTextBaseline(obAtr.fontbaseline);
-    var style = layerStyle;
+    var style = layerStyle.clone();
     return style;
   };
 };
@@ -405,10 +406,11 @@ function updateLegend()
 {
 var pRad;
 
+
 layer_vector_group.getLayers().forEach(function(layer_arr){
 if(layer_arr.get('name')==layerLegendMain)
 {
-if(!layer_arr.styleTemp){layer_arr.styleTemp=layer_arr.getStyle()}
+if(!layer_arr.styleTemp){layer_arr.styleTemp=layer_arr.getStyle().clone()}
 //mLayers[a].styleMap.styles.default.defaultStyle.pointRadius=pRadLegend;
 var ob=JSON.stringify(labelAtrrinuteMain);layer_arr.labelAtrrinuteMain=JSON.parse(ob);
 if(pRadLegend==''){pRadLegend=3}; rtt=layer_arr.styleTemp; 
@@ -430,11 +432,34 @@ layer_arr.styleTemp.getStroke().setWidth(pStrokeLegend);
 
 
 rtt=labelAtrrinuteMain;; 
+var r1=pRadLegend*1;var r2=pStrokeLegend*1;
 layer_arr.styleTemp.getImage().setRadius(pRadLegend);
-
+ var styleNew = new ol.style.Style({
+     image: new ol.style.Circle( /** @type {olx.style.IconOptions} */ ({
+            radius: r1,
+            fill: new ol.style.Fill({
+                color: layer_arr.styleTemp.getImage().getFill().getColor()
+            }),
+             stroke: new ol.style.Stroke({
+        color: layer_arr.styleTemp.getImage().getStroke().getColor(),
+        width: r2
+    })
+        }))    ,
+    stroke: new ol.style.Stroke({
+        color: layer_arr.styleTemp.getStroke().getColor(),
+        width: pStrokeLegend
+    }),
+    fill: new ol.style.Fill({
+       color: layer_arr.styleTemp.getFill().getColor()
+        //color:"#FF9000",
+            }),
+  text:new ol.style.Text({})
+});
 if(labelAtrrinuteMain.name&&labelAtrrinuteMain.name.length>0)
 {
-var layerStyle=layer_arr.styleTemp.clone();var obAtr=layer_arr.labelAtrrinuteMain;
+var layerStyle=styleNew;
+var obAtr=layer_arr.labelAtrrinuteMain;
+
 layer_arr.setStyle(createStyleFunction(layerStyle,obAtr));
 //layer_arr.setStyle(layerStyle)
 //layer_arr.getStyle().getText().setText(GetTextLabel(feature, resolution, dom));
@@ -450,8 +475,17 @@ layer_arr.setStyle(createStyleFunction(layerStyle,obAtr));
    // rotation: rotation
  // });
 
-}else{layer_arr.styleTemp.getImage().setRadius(pRadLegend);layer_arr.setStyle(layer_arr.styleTemp);}
-layer_arr.getSource().changed();
+}else{layer_arr.styleTemp.getImage().setRadius(pRadLegend);
+
+
+        
+layer_arr.setStyle(styleNew);
+
+}
+layer_arr.getSource().changed(); //clampToGround altitudeMode
+
+for(var r=0;r<layer_arr.getSource().getFeatures().length;r++)
+{layer_arr.getSource().getFeatures()[r].getGeometry().set('altitudeMode', 'clampToGround');}//rtt=layer_arr.getSource().getFeatures()[r].getGeometry(); alert("hhh")
 /*mLayers[a].styleMap.styles.default.defaultStyle.strokeWidth=pStrokeLegend;
 mLayers[a].styleMap.styles.default.defaultStyle.fillOpacity=pOpacityLegend;
 mLayers[a].styleMap.styles.default.defaultStyle.strokeOpacity=pOpacityLegend;
@@ -705,7 +739,7 @@ DivEditeLeg.innerHTML='<div id="id_divClustLeg" style="background:#ffffff; color
 '</div>';
 if(!document.getElementById("id_divClustLegMain2"))
 {body.appendChild(DivEditeLeg);
-
+var mLayers=map.layers;
 for(var ab = 0; ab < mLayers.length; ab++ )
 { 
 if (mLayers[ab].name==layerLegendType)
@@ -779,7 +813,7 @@ OpenLayers.Strategy.RuleCluster = OpenLayers.Class(OpenLayers.Strategy.Cluster, 
     CLASS_NAME: "OpenLayers.Strategy.RuleCluster"
 });
 var layEdCl='';
-
+var mLayers=map.layers;
 for(var ab = 0; ab < mLayers.length; ab++ )
 { 
 if (mLayers[ab].name==layerLegendType)
@@ -840,7 +874,7 @@ if(document.getElementById("attribClustSel2").value=='0'){alert("select all opti
         
         // remove layer and control
 
-        
+        map.removeLayer(layEdCl);
         // rebuild layer
 var new_style_layer= new OpenLayers.Style({
  pointRadius: 3, fillColor: "#FF9000",
@@ -852,7 +886,7 @@ fillOpacity:1, strokeOpacity:1 });
 fillOpacity:1, strokeOpacity:1 }); 
         vectorlayer = new OpenLayers.Layer.Vector(layEdCl.name, {strategies: strategies,renderers:["Canvas", "SVG", "VML"]});
  vectorlayer.styleMap=new OpenLayers.StyleMap({'default':new_style_layer,'select': selStyle});
-               vectorlayer.addFeatures(featuresClust);
+        map.addLayer( vectorlayer );        vectorlayer.addFeatures(featuresClust);
 if(vectorlayer.name==edilayerMainLayer.name)
 {SeteditlayerMain(vectorlayer.name);}
 
@@ -924,7 +958,7 @@ if(!document.getElementById("id_divLabelLegRul"+n))
 {body.appendChild(DivEditeLeg);}
 document.getElementById("id_divLabelLegRul"+n).style.display="block";
 document.getElementById("butLabel"+n).onclick=function(){ArrayLabelRules(elem)}
-
+var mLayers=gc2.map.layers;
 for(var ab = 0; ab < mLayers.length; ab++ )
 {  if (mLayers[ab].name==layerLegendType)
 {for (var a in mLayers[ab].features[0].attributes)
@@ -1032,7 +1066,7 @@ document.getElementById("pField").appendChild(t);
 
 var WFSLayerList;
 
-
+var mLayers=map.layers;
          for(var ab = 0; ab < mLayers.length; ab++ )
              { 
  if (mLayers[ab].name==layerLegendType)
@@ -1057,7 +1091,7 @@ for (var a in mLayers[ab].features[0].attributes)
 
 
 var flag=0;
-
+var mLayers=map.layers;
          for(var ab = 0; ab < mLayers.length; ab++ )
              { 
    if(mLayers[ab].protocol)
@@ -1239,7 +1273,7 @@ var seldel = document.getElementById("classRules");
 ////
 
 //for TEXT field
-
+var mLayers=map.layers;
          for(var ab = 0; ab < mLayers.length; ab++ )
              { 
                 if (mLayers[ab].name==layerLegendType)
@@ -1391,7 +1425,7 @@ var minDist;
 var maxDist;
 
 /////////////////////
-
+var mLayers=map.layers;
          for(var ab = 0; ab < mLayers.length; ab++ )
              { 
    if(mLayers[ab].protocol)
@@ -2000,6 +2034,5 @@ function xLimit(Value, Lower, Higher) {
 	if (Value > Higher) Value = Higher;
 	return Value;
 }
-
 
 

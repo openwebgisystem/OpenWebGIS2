@@ -369,6 +369,7 @@ vectorLayer.setZIndex(zindex+1);
 map.getView().fit(vectorSource.getExtent(), map.getSize());
 layer_vector_group.getLayers().push(vectorLayer)
       }
+
 function OK_fileTXT2()
 {contentsTXTfile='';
 var SepSym=document.getElementById("sepTXTcsv_id").value;
@@ -408,7 +409,7 @@ tarr.push(headers[j]+"_:_"+data[j].replace(/a;=;a/g,','));
  }
  }
 
-document.getElementById("id_divloadfiles_layer").parentNode.removeChild(document.getElementById("id_divloadfiles_layer"))
+document.getElementById("id_divloadfiles_layer").style.display="none";
 var htmlTextLonLat='';
 htmlTextLonLat+='<a>Please select longitude:</a><br>'+
  '<select id="longTXT_id"> '+
@@ -420,7 +421,7 @@ htmlTextLonLat+='<a>Please select longitude:</a><br>'+
 '</select><br>'+
 '<input type="checkbox" id="id_convertCoordCSV" title="if coordinates are in format ISO6709(DD.DDS\N\W\E), then they must be converted in number. Example: latitude=24.80S will be converted in latitude=-24.80" value="checkbox"/>Convert coordinate to number<br>'+
 //'<p> <button class=buttonclass type=button onclick=OK_LonLatTXT()>OK</button></p>';
-'<p style="left: 0px; bottom: 0px; position: relative; height: 15px;"><button class=buttonclass style="position: absolute; left: 0px; bottom: 0px;" type=button onclick=CloseCSVaddWindow()>Close</button> <button class=buttonclass type=button style="position: absolute; right: 0px; bottom: 0px;" onclick=OK_LonLatTXT()>OK</button></p>';
+'<p style="left: 0px; bottom: 0px; position: relative; height: 15px;"><button class=buttonclass style="position: absolute; left: 0px; bottom: 0px;" type=button onclick=CloseCSVaddWindow()>Close</button> <button id=OK_LonLat_id class=buttonclass type=button style="position: absolute; right: 0px; bottom: 0px;" onclick=OK_LonLatTXT()>OK</button></p>';
 
 var DivEditeLeg=document.createElement("div");
 
@@ -434,7 +435,6 @@ if(!document.getElementById("id_divuploadfiles_csv"))
 {document.getElementById('menu_main').appendChild(DivEditeLeg);
 
 }
-
 
  for(var ab = 0; ab < headers.length; ab++ )
 {var t=document.createElement('option');
@@ -455,10 +455,12 @@ document.getElementById("latTXT_id").appendChild(t);
  }
 }
 function CloseCSVaddWindow()
-{document.getElementById("id_divuploadfiles_csv").parentNode.removeChild(document.getElementById("id_divuploadfiles_csv")) }
+{document.getElementById("id_divuploadfiles_csv").parentNode.removeChild(document.getElementById("id_divuploadfiles_csv"));
+//document.getElementById("id_divloadfiles_layer").style.display="block"; 
+}
 function OK_LonLatTXT()
 {
-
+  
 var vectorSource = new ol.source.Vector({
         //features: (new ol.format.GPX()).readFeatures(contents,{featureProjection: ol.proj.get('EPSG:3857'),
             //    dataProjection: 'EPSG:4326'} )
@@ -490,13 +492,14 @@ var vectorSource = new ol.source.Vector({
         style: style
         //Name: fileLayer.name
       });
+
       rtt=vectorSource; 
        var NewLayerName_file='';
 document.getElementById('newLayer_idname').value!==''?NewLayerName_file=document.getElementById('newLayer_idname').value:NewLayerName_file=fileLayer.name;
+document.getElementById("id_divloadfiles_layer").parentNode.removeChild(document.getElementById("id_divloadfiles_layer"));
       vectorLayer.set('name', NewLayerName_file);
       vectorLayer.set('title', NewLayerName_file);
-      
-      
+   
       
 //var new_layer_TXT = new OpenLayers.Layer.Vector(fileZIP.name.split('.')[0],{renderers:["Canvas", "SVG", "VML"]});
  for(var ab = 0; ab < contentsTXTfile.length; ab++ )
@@ -514,6 +517,12 @@ if(document.getElementById("id_convertCoordCSV").checked==true)
 }
 }//end for(var a = 0; a < contentsTXTfile[ab].length; a++ )
 
+/*var new_pos=new OpenLayers.LonLat(x,y).transform(
+new OpenLayers.Projection("EPSG:4326"),
+MapCentia.gc2.map.getProjectionObject());
+var new_lon=new_pos.lon;
+var new_lat=new_pos.lat;
+var first_point =new OpenLayers.Geometry.Point(new_lon, new_lat);*/
 var point_geom = new ol.geom.Point( ol.proj.transform([x*1,y*1], 'EPSG:4326', 'EPSG:3857'));
  
 var feature_layer = new ol.Feature({geometry: point_geom});
