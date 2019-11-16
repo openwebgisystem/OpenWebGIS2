@@ -61,7 +61,7 @@ cursor:pointer;
         background-color: rgba(83,194,207,0.7);
       }
     </style>
-    <script src="ol/ol.js" type="text/javascript"></script>
+    <script src="olcesium/ol3cesium.js" type="text/javascript"></script>
    
 <script src="ol3-contextmenu/ol3-contextmenu-debug.js"></script>
 <script src="ol3-layerswitcher/ol3-layerswitcher.js"></script>
@@ -88,12 +88,14 @@ cursor:pointer;
       <div id="style_layer_id" onclick=style_layermenu() style="position: absolute;right: 0.5em; text-align: left;  top: 6.5em;z-index:2;  cursor:pointer; display:block;background:white">Modify vector Layer style</div>
       <div id="export_layer_id" onclick=export_layermenu() style="position: absolute;right: 0.5em; text-align: left;  top: 8.5em;z-index:2;  cursor:pointer; display:block;background:white">Export vector Layer</div>
 <div id="geolocation_layer_id" onclick=geolocation_layermenu() style="position: absolute;right: 0.5em; text-align: left;  top: 10.5em;z-index:2;  cursor:pointer; display:block;background:white">Get your geolocation</div>
+<div id="d3_layer_id" onclick=d3_layermenu() style="position: absolute;right: 0.5em; text-align: left;  top: 12.5em;z-index:2;  cursor:pointer; display:block;background:white">3D (Globe)</div>
+<div id="option_layer_id" onclick=option_layermenu() style="position: absolute;right: 0.5em; text-align: left;  top: 14.5em;z-index:2;  cursor:pointer; display:block;background:white">Options</div>
     </div>
     </div>
         </div>
         <div style="bottom: 4em; left: 0; min-width: 200px;  position: absolute;" id="coordinat_position_id"></div>
     <script type="text/javascript">
-    var fileLayer; var layer_vector_group; var ModifyMode=0;var layer_base_group;var fileZIP;var popupheightOWG=0; var popupwidthOWG=0;
+    var fileLayer; var layer_vector_group; var ModifyMode=0;var layer_base_group;var fileZIP;var popupheightOWG=0; var popupwidthOWG=0;var Mode3d=0;
     var Movewindowblock=''; var delta_x = 0;  var delta_y = 0;
 var intervaTimeGeoLoc=0;
 var new_layer_MyLocationInterval=0;
@@ -205,22 +207,7 @@ new_layer_MyLocationIntervalTrack.setZIndex(zindex+1);
 //map.getView().fit(vectorSource.getExtent(), map.getSize());
 layer_vector_group.getLayers().push(new_layer_MyLocationIntervalTrack)
 }
-/*if(document.getElementById("id_PointSaveServerLocat").checked==true)
-////////
-{var strsave='';
-try {var xmlhttp =new XMLHttpRequest();}
-catch (e) {alert("error");}
-xmlhttp.open('POST','/linklocat.php?rand='+Math.random(), true);
-xmlhttp.setRequestHeader("Cache-Control", "no-cache");
- xmlhttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-xmlhttp.onreadystatechange = function()
-{if(xmlhttp.readyState == 4&&xmlhttp.status == 200) {
-if(xmlhttp==''){alert("no data");return;}
-var varlink=xmlhttp.responseText;
-document.getElementById("id_PointSaveLinkLocat").value=varlink;
-}}
-xmlhttp.send('l='+strsave);
-}*//////////////////////////
+
 if (navigator.geolocation)     {     navigator.geolocation.getCurrentPosition(showPositionInterval,showError);     }   
 else{alert("Geolocation is not supported by this browser.");return;}  
 intervaTimeGeoLoc=setInterval( function(){
@@ -403,6 +390,127 @@ styleColor.type = 'text/css';styleColor.id='color-picker_css_id';document.head.a
 
 }else{initLegend()}
 }
+var graticuleMain;
+function ChangeCheckGrat()
+{
+if(document.getElementById("id_setGratCheck").checked)
+{   graticuleMain = new ol.Graticule({
+        // the style to use for the lines, optional.
+        strokeStyle: new ol.style.Stroke({
+          color: 'rgba(255,120,0,0.9)',
+          width: 2,
+          lineDash: [0.5, 4]
+        })
+      });
+       graticuleMain.setMap(map);}
+else
+{
+ graticuleMain.setMap(null);
+}
+}
+var accessT="";var ol3d="";
+   function d3_layermenu()
+{
+if(Mode3d==1){Mode3d=0;document.getElementById("d3_layer_id").innerHTML="3D (Globe)";ol3d.setEnabled(false)}
+else
+{ Mode3d=1;document.getElementById("d3_layer_id").innerHTML="2D Map";
+
+var scriptB0 = document.createElement("script"); scriptB0.src = 'js/getvalue2.js'; 
+ scriptB0.type = 'text/javascript';  scriptB0.id="getvalue_script2_id";
+scriptB0.async=false;document.head.appendChild(scriptB0);scriptB0.onload= function()
+{
+
+
+
+ if(!document.getElementById("Cesium_js_id"))
+  { 
+/*scriptB0.async=false;*///document.head.appendChild(scriptB0);//scriptB0.onload= function(){initLegend()};
+
+
+var req = new XMLHttpRequest();  
+req.open('GET', 'https://api.cesium.com/v1/assets/1/endpoint?access_token='+returnValue2().split("_")[1]+returnValue2().split("_")[0], true);   
+//req.setRequestHeader("Cache-Control", "no-cache");
+//req.setRequestHeader("Content-type", "text/xml");
+req.onreadystatechange = function()
+{if(req.readyState == 4&&(req.status == 200||req.status == 0)) {
+ 
+var obj = JSON.parse(req.responseText);
+accessT=obj.accessToken; 
+var scriptB3 = document.createElement("script"); scriptB3.src = 'olcesium/CesiumUnminified/Cesium.js'; 
+ scriptB3.type = 'text/javascript';  scriptB3.id="Cesium_js_id";
+document.head.appendChild(scriptB3);
+
+scriptB3.onload=function(){ol3d = new olcs.OLCesium({map: map});
+var scene = ol3d.getCesiumScene();
+var terrainProvider = new Cesium.CesiumTerrainProvider({
+  url : '//assets.cesium.com/1',
+  requestVertexNormals: true
+
+});
+scene.terrainProvider = terrainProvider;
+ol3d.enableAutoRenderLoop();
+layer_vector_group.getLayers().forEach(function(layer_arr)
+{
+for(var r=0;r<layer_arr.getSource().getFeatures().length;r++)
+{ layer_arr.getSource().getFeatures()[r].getGeometry().set('altitudeMode', 'clampToGround');}
+
+layer_arr.set('altitudeMode', 'clampToGround');
+
+ })
+ol3d.setEnabled(true);}
+
+ }  }
+ req.send(null);
+
+
+} 
+else
+{
+
+
+ol3d = new olcs.OLCesium({map: map});
+var scene = ol3d.getCesiumScene();
+var terrainProvider = new Cesium.CesiumTerrainProvider({
+  url : '//assets.cesium.com/1',
+  requestVertexNormals: true
+//defaultAccessToken : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0MzAyNzUyYi0zY2QxLTQxZDItODRkOS1hNTA3MDU3ZTBiMDUiLCJpZCI6MjU0MSwiaWF0IjoxNTMzNjI1MTYwfQ.oHn1SUWJa12esu7XUUtEoc1BbEbuZpRocLetw6M6_AA'
+});
+scene.terrainProvider = terrainProvider;
+ol3d.enableAutoRenderLoop();
+layer_vector_group.getLayers().forEach(function(layer_arr)
+{
+for(var r=0;r<layer_arr.getSource().getFeatures().length;r++)
+{layer_arr.getSource().getFeatures()[r].getGeometry().set('altitudeMode', 'clampToGround');}
+
+layer_arr.set('altitudeMode', 'clampToGround');
+
+ })
+ol3d.setEnabled(true);
+} } }
+}
+function CloseOptionFunc()
+{document.getElementById("id_divOption_layer").parentNode.removeChild(document.getElementById("id_divOption_layer"))}
+   function option_layermenu()
+{
+ var body = document.body;
+    var DivEditeLeg=document.createElement("div");DivEditeLeg.style.cursor="default";
+DivEditeLeg.id="id_divOption_layer";
+//DivEditeLeg.className="id_divRoutLegMain";
+DivEditeLeg.innerHTML='<div id="id_id_divoptionlayers" style="background:#ffffff; color:#000000;z-index: 6000;position:absolute;overflow:hidden; border: 1px solid black;right: 0.5em; top: 2.5em;">'+
+'<input type="checkbox" id="id_setGratCheck" onchange=ChangeCheckGrat() value="checkbox"/><a>Set graticule</a><br>'+
+//'<input type="checkbox" id="Id_KavikIsInFileWeb" value="checkbox"/>click if field contains inverted commas'+
+'<p style="left: 0px; bottom: 0px; position: relative; height: 15px;"><button class=buttonclass style="position: absolute; left: 0px; bottom: 0px;" type=button onclick="CloseOptionFunc()">Close</button> <button class=buttonclass type=button style="position: absolute; right: 0px; bottom: 0px;" onclick=OK_optionWin()>OK</button></p>'+
+//'<p></p>'+
+'</div>';
+
+if(!document.getElementById("id_divOption_layer"))
+{document.getElementById('menu_main').appendChild(DivEditeLeg);
+
+document.getElementById("id_divOption_layer").childNodes[0].addEventListener("mousedown", saveXY, false);
+document.getElementById("id_divOption_layer").childNodes[0].addEventListener("touchstart", saveXY, false);
+
+}
+}
    
     function export_layermenu()
     {
@@ -436,6 +544,7 @@ DivEditeLeg.innerHTML='<div id="id_id_divexportlayers" style="background:#ffffff
 '<option value="kml">Export Layer to KML file</option>'+//6
 '<option value="csv">Export Layer to CSV file</option>'+//7
 '<option disabled value="shape">Export Layer to Shapefile (zipped)</option>'+//8
+'<option value="png">Export map to PNG image</option>'+//9
 '</select>&nbsp;'+
 '<div id="csv_option_id_div_export" style="display:none"><a>Please select separation symbol in CSV file :</a><br>'+
  '<select id="sepTXTcsv_id_export"> '+
@@ -939,20 +1048,7 @@ var contents;
  imgN.src=contents;w=imgN.width; h=imgN.height;}
   if(document.getElementById('id_imageTableUpload').checked==true)
  {
- /*if(fileZIP.size>8000000){alert("size of the file could not be more than 8 MB"); return;}
- try {var xmlhttp =new XMLHttpRequest();}
-catch (e) {alert("error");}
-xmlhttp.open('POST','/image.php?rand='+Math.random(), true);
-xmlhttp.setRequestHeader("Cache-Control", "no-cache");
-//xmlhttp.setRequestHeader("Content-type", fileZIP.type);
- xmlhttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-xmlhttp.onreadystatechange = function()
-{if(xmlhttp.readyState == 4&&xmlhttp.status == 200) {
-if(xmlhttp==''){alert("no data");return;}
-//var varlink=xmlhttp.responseText;
-td.previousElementSibling.value="<img src="+window.location.origin+"/images/"+xmlhttp.responseText+" style=width:"+w+"px;height:"+h+"px>";
-}}
-xmlhttp.send('value='+contents+'&name='+fileZIP.name);*/
+
  }
  else
 {td.previousElementSibling.value="<img src="+contents+" style=width:"+w+"px;height:"+h+"px>";}
@@ -1271,7 +1367,7 @@ if(Movewindowblock.style.right){Movewindowblock.style.right='';}
    
   }
     </script>
-
+ 
   </body>
  
 </html>
